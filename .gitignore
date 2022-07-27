@@ -1,1 +1,11 @@
+# MacOS
+.DS_Store
+
+# Jetbrains
+.idea/
+
+# VSCode
 .vscode/
+
+# Python
+*/__pycache__/
