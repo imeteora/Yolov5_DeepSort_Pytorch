@@ -1,7 +1,9 @@
+import os
 import argparse
 
-import os
 # limit the number of cpus used by high performance libraries
+from PIL import Image
+
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -9,7 +11,6 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import sys
-import numpy as np
 from pathlib import Path
 import torch
 import torch.backends.cudnn as cudnn
@@ -30,14 +31,31 @@ import logging
 from yolov5.models.common import DetectMultiBackend
 from yolov5.utils.dataloaders import VID_FORMATS, LoadImages, LoadStreams
 from yolov5.utils.general import (LOGGER, check_img_size, non_max_suppression, scale_coords, check_requirements, cv2,
-                                  check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr, print_args, check_file)
+                                  check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr, print_args,
+                                  check_file)
 from yolov5.utils.torch_utils import select_device, time_sync
 from yolov5.utils.plots import Annotator, colors, save_one_box
 from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 
+# regional tracking library
+from regional_tracking import area, boundaryLine, drawBoundaryLines, drawAreas, objectTracker, checkLineCrosses, \
+    checkAreaIntrusion, region_object, FeatureVectorGenerator
+
 # remove duplicated stream handler to avoid duplicated logging
 logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+
+# boundary lines
+boundaryLines = [
+    boundaryLine([ 300,  40,  20, 400 ]),
+    boundaryLine([ 440,  40, 700, 400 ])
+]
+
+# Areas
+areas = [
+    area([ [200,200], [500,180], [600,400], [300,300], [100,360] ])
+]
+
 
 @torch.no_grad()
 def run(
@@ -71,7 +89,6 @@ def run(
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
 ):
-
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (VID_FORMATS)
@@ -113,9 +130,9 @@ def run(
     cfg.merge_from_file(opt.config_strongsort)
 
     # Create as many strong sort instances as there are video sources
-    strongsort_list = []
+    strong_sort_list = []
     for i in range(nr_sources):
-        strongsort_list.append(
+        strong_sort_list.append(
             StrongSORT(
                 strong_sort_weights,
                 device,
@@ -126,10 +143,13 @@ def run(
                 nn_budget=cfg.STRONGSORT.NN_BUDGET,
                 mc_lambda=cfg.STRONGSORT.MC_LAMBDA,
                 ema_alpha=cfg.STRONGSORT.EMA_ALPHA,
-
             )
         )
     outputs = [None] * nr_sources
+
+    # REGIONAL TRACKING VARS
+    tracker = objectTracker()
+    feaVecGenerator = FeatureVectorGenerator(torch_device=device)
 
     # Run tracking
     model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
@@ -179,11 +199,13 @@ def run(
 
             txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
             s += '%gx%g ' % im.shape[2:]  # print string
-            imc = im0.copy() if save_crop else im0  # for save_crop
+            imc = im0.copy() #if save_crop else im0  # for save_crop
 
             annotator = Annotator(im0, line_width=2, pil=not ascii)
             if cfg.STRONGSORT.ECC:  # camera motion compensation
-                strongsort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
+                strong_sort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
+
+            tracking_objs = []  # for REGIONAL TRACKING
 
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
@@ -200,44 +222,73 @@ def run(
 
                 # pass detections to strongsort
                 t4 = time_sync()
-                outputs[i] = strongsort_list[i].update(xywhs.cpu(), confs.cpu(), clss.cpu(), im0)
+                outputs[i] = strong_sort_list[i].update(xywhs.cpu(), confs.cpu(), clss.cpu(), im0)
                 t5 = time_sync()
                 dt[3] += t5 - t4
 
                 # draw boxes for visualization
                 if len(outputs[i]) > 0:
-                    for j, (output, conf) in enumerate(zip(outputs[i], confs)):
-    
+                    combine_outputs = zip(outputs[i], confs)
+                    for j, (output, conf) in enumerate(combine_outputs):
                         bboxes = output[0:4]
                         id = output[4]
                         cls = output[5]
 
-                        if save_txt:
-                            # to MOT format
-                            bbox_left = output[0]
-                            bbox_top = output[1]
-                            bbox_w = output[2] - output[0]
-                            bbox_h = output[3] - output[1]
-                            # Write MOT compliant results to file
-                            with open(txt_path + '.txt', 'a') as f:
-                                f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
-                                                               bbox_top, bbox_w, bbox_h, -1, -1, -1, i))
+                        if conf > 0.75:
+                            xmin, ymin, xmax , ymax = int(bboxes[0]), int(bboxes[1]), int(bboxes[2]), int(bboxes[3])
+                            pil_obj_img = Image.fromarray(imc[ymin:ymax, xmin:xmax])
+                            # pil_obj_img.save('foo.png')
+                            featvect = feaVecGenerator.feature_vector_from_image(pil_obj_img)
+                            tracking_objs.append(region_object([xmin, ymin, xmax, ymax], featvect, -1))
+
+                        # if save_txt:
+                        #     # to MOT format
+                        #     bbox_left = output[0]
+                        #     bbox_top = output[1]
+                        #     bbox_w = output[2] - output[0]
+                        #     bbox_h = output[3] - output[1]
+                        #     # Write MOT compliant results to file
+                        #     with open(txt_path + '.txt', 'a') as f:
+                        #         f.write(('%g ' * 10 + '\n') % (frame_idx + 1, id, bbox_left,  # MOT format
+                        #                                        bbox_top, bbox_w, bbox_h, -1, -1, -1, i))
 
                         if save_vid or save_crop or show_vid:  # Add bbox to image
                             c = int(cls)  # integer class
                             id = int(id)  # integer id
-                            label = None if hide_labels else (f'{id} {names[c]}' if hide_conf else \
-                                (f'{id} {conf:.2f}' if hide_class else f'{id} {names[c]} {conf:.2f}'))
+                            label = None \
+                                if hide_labels \
+                                else (f'{id} {names[c]}'
+                                      if hide_conf
+                                      else (f'{id} {conf:.2f}'
+                                            if hide_class
+                                            else f'{id} {names[c]} {conf:.2f}'))
                             annotator.box_label(bboxes, label, color=colors(c, True))
                             if save_crop:
-                                txt_file_name = txt_file_name if (isinstance(path, list) and len(path) > 1) else ''
-                                save_one_box(bboxes, imc, file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg', BGR=True)
+                                txt_file_name = txt_file_name \
+                                    if (isinstance(path, list) and len(path) > 1) \
+                                    else ''
+                                save_one_box(bboxes,
+                                             imc,
+                                             file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg',
+                                             BGR=True)
 
                 LOGGER.info(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s)')
 
             else:
-                strongsort_list[i].increment_ages()
+                strong_sort_list[i].increment_ages()
                 LOGGER.info('No detections')
+
+            # paint regional tracking
+            tracker.trackObjects(tracking_objs)
+            tracker.evictTimeoutObjectFromDB()
+            tracker.drawTrajectory(im0, tracking_objs)
+
+            checkLineCrosses(boundaryLines, tracking_objs)
+            drawBoundaryLines(im0, boundaryLines)
+
+            checkAreaIntrusion(areas, tracking_objs)
+            drawAreas(im0, areas)
+
 
             # Stream results
             im0 = annotator.result()
@@ -263,9 +314,13 @@ def run(
 
             prev_frames[i] = curr_frames[i]
 
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
-    LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort update per image at shape {(1, 3, *imgsz)}' % t)
+    LOGGER.info(
+        f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort update per image at shape {(1, 3, *imgsz)}' % t)
     if save_txt or save_vid:
         s = f"\n{len(list(save_dir.glob('tracks/*.txt')))} tracks saved to {save_dir / 'tracks'}" if save_txt else ''
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
@@ -278,7 +333,7 @@ def parse_opt():
     parser.add_argument('--yolo-weights', nargs='+', type=str, default=WEIGHTS / 'yolov5m.pt', help='model.pt path(s)')
     parser.add_argument('--strong-sort-weights', type=str, default=WEIGHTS / 'osnet_x0_25_msmt17.pt')
     parser.add_argument('--config-strongsort', type=str, default='strong_sort/configs/strong_sort.yaml')
-    parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')  
+    parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.5, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
