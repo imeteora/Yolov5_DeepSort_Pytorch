@@ -9,7 +9,7 @@ from scipy.spatial import distance
 # ------------------------------------
 # Object tracking
 
-class object:
+class region_object:
     def __init__(self, pos, feature, id=-1):
         self.feature = feature
         self.id = id

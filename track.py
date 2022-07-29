@@ -2,8 +2,7 @@ import os
 import argparse
 
 # limit the number of cpus used by high performance libraries
-from regional_tracking import area, boundaryLine, drawBoundaryLines, drawAreas
-
+from PIL import Image
 
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -38,6 +37,10 @@ from yolov5.utils.torch_utils import select_device, time_sync
 from yolov5.utils.plots import Annotator, colors, save_one_box
 from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
+
+# regional tracking library
+from regional_tracking import area, boundaryLine, drawBoundaryLines, drawAreas, objectTracker, checkLineCrosses, \
+    checkAreaIntrusion, region_object, FeatureVectorGenerator
 
 # remove duplicated stream handler to avoid duplicated logging
 logging.getLogger().removeHandler(logging.getLogger().handlers[0])
@@ -144,6 +147,10 @@ def run(
         )
     outputs = [None] * nr_sources
 
+    # REGIONAL TRACKING VARS
+    tracker = objectTracker()
+    feaVecGenerator = FeatureVectorGenerator(torch_device=device)
+
     # Run tracking
     model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
@@ -192,11 +199,13 @@ def run(
 
             txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
             s += '%gx%g ' % im.shape[2:]  # print string
-            imc = im0.copy() if save_crop else im0  # for save_crop
+            imc = im0.copy() #if save_crop else im0  # for save_crop
 
             annotator = Annotator(im0, line_width=2, pil=not ascii)
             if cfg.STRONGSORT.ECC:  # camera motion compensation
                 strong_sort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
+
+            tracking_objs = []  # for REGIONAL TRACKING
 
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
@@ -219,10 +228,18 @@ def run(
 
                 # draw boxes for visualization
                 if len(outputs[i]) > 0:
-                    for j, (output, conf) in enumerate(zip(outputs[i], confs)):
+                    combine_outputs = zip(outputs[i], confs)
+                    for j, (output, conf) in enumerate(combine_outputs):
                         bboxes = output[0:4]
                         id = output[4]
                         cls = output[5]
+
+                        if conf > 0.75:
+                            xmin, ymin, xmax , ymax = int(bboxes[0]), int(bboxes[1]), int(bboxes[2]), int(bboxes[3])
+                            pil_obj_img = Image.fromarray(imc[ymin:ymax, xmin:xmax])
+                            # pil_obj_img.save('foo.png')
+                            featvect = feaVecGenerator.feature_vector_from_image(pil_obj_img)
+                            tracking_objs.append(region_object([xmin, ymin, xmax, ymax], featvect, -1))
 
                         # if save_txt:
                         #     # to MOT format
@@ -250,8 +267,10 @@ def run(
                                 txt_file_name = txt_file_name \
                                     if (isinstance(path, list) and len(path) > 1) \
                                     else ''
-                                save_one_box(bboxes, imc, file=save_dir / 'crops' / txt_file_name / names[
-                                    c] / f'{id}' / f'{p.stem}.jpg', BGR=True)
+                                save_one_box(bboxes,
+                                             imc,
+                                             file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg',
+                                             BGR=True)
 
                 LOGGER.info(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s)')
 
@@ -260,8 +279,15 @@ def run(
                 LOGGER.info('No detections')
 
             # paint regional tracking
-            drawBoundaryLines(imc, boundaryLines)
-            drawAreas(imc, areas)
+            tracker.trackObjects(tracking_objs)
+            tracker.evictTimeoutObjectFromDB()
+            tracker.drawTrajectory(im0, tracking_objs)
+
+            checkLineCrosses(boundaryLines, tracking_objs)
+            drawBoundaryLines(im0, boundaryLines)
+
+            checkAreaIntrusion(areas, tracking_objs)
+            drawAreas(im0, areas)
 
 
             # Stream results
@@ -271,20 +297,20 @@ def run(
                 cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
-            # if save_vid:
-            #     if vid_path[i] != save_path:  # new video
-            #         vid_path[i] = save_path
-            #         if isinstance(vid_writer[i], cv2.VideoWriter):
-            #             vid_writer[i].release()  # release previous video writer
-            #         if vid_cap:  # video
-            #             fps = vid_cap.get(cv2.CAP_PROP_FPS)
-            #             w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            #             h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            #         else:  # stream
-            #             fps, w, h = 30, im0.shape[1], im0.shape[0]
-            #         save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-            #         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-            #     vid_writer[i].write(im0)
+            if save_vid:
+                if vid_path[i] != save_path:  # new video
+                    vid_path[i] = save_path
+                    if isinstance(vid_writer[i], cv2.VideoWriter):
+                        vid_writer[i].release()  # release previous video writer
+                    if vid_cap:  # video
+                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    else:  # stream
+                        fps, w, h = 30, im0.shape[1], im0.shape[0]
+                    save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
+                    vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                vid_writer[i].write(im0)
 
             prev_frames[i] = curr_frames[i]
 
