@@ -79,12 +79,15 @@ def pointPolygonTest(polygon, test_point):
     prev_point = polygon[-1]  # Use the last point as the starting point to close the polygon
     line_count = 0
     for point in polygon:
-        if test_point[1] >= min(prev_point[1], point[1]) and test_point[1] <= max(prev_point[1], point[
-            1]):  # Check if Y coordinate of the test point is in range
-            gradient = (point[0] - prev_point[0]) / (point[1] - prev_point[1])  # delta_x / delta_y
-            line_x = prev_point[0] + (test_point[1] - prev_point[1]) * gradient  # Calculate X coordinate of a line
+        # Check if Y coordinate of the test point is in range
+        if min(prev_point[1], point[1]) <= test_point[1] <= max(prev_point[1], point[1]):
+            # delta_x / delta_y
+            gradient = (point[0] - prev_point[0]) / (point[1] - prev_point[1])
+            # Calculate X coordinate of a line
+            line_x = prev_point[0] + (test_point[1] - prev_point[1]) * gradient
             if line_x < test_point[0]:
                 line_count += 1
         prev_point = point
-    included = True if line_count % 2 == 1 else False  # Check how many lines exist on the left to the test_point
+    # Check how many lines exist on the left to the test_point
+    included = True if line_count % 2 == 1 else False
     return included
