@@ -1,8 +1,9 @@
 import argparse
 import os
 
+from regional_tracking.regional_detect_tracker_2 import RegionalDetectTrackerM2
+
 # limit the number of cpus used by high performance libraries
-from PIL import Image
 
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -39,21 +40,23 @@ from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 
 # regional tracking library
-from regional_tracking import area, boundaryLine, drawBoundaryLines, drawAreas, RegionDetectTracker, checkLineCrosses, \
-    checkAreaIntrusion, RegionObject, FeatureVectorGenerator
+from regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkLineCrosses, \
+    checkAreaIntrusion, RawObject, FeatureVectorGenerator, resetLineCrosses, TrackingObject
 
 # remove duplicated stream handler to avoid duplicated logging
 logging.getLogger().removeHandler(logging.getLogger().handlers[0])
 
 # boundary lines
 boundaryLines = [
-    boundaryLine([713, 480, 1125, 482]),
-    boundaryLine([545, 630, 1050, 630])
+    # boundaryLine([655, 450, 1125, 450]),    # for hf video 1
+    BoundaryLine([0, 540, 1820, 540]),    # for common test.mp4
+    # boundaryLine([655, 500, 1125, 500]),
+    # boundaryLine([506, 630, 1050, 630])
 ]
 
 # Areas
 areas = [
-    area([[200, 200], [500, 180], [600, 400], [300, 300], [100, 360]])
+    # area([[740, 417], [670, 480], [1033, 480], [1043, 417]])    # invert circle
 ]
 
 
@@ -148,7 +151,7 @@ def run(
     outputs = [None] * nr_sources
 
     # REGIONAL TRACKING VARS
-    tracker = RegionDetectTracker()
+    tracker = RegionalDetectTrackerM2()
     feaVecGenerator = FeatureVectorGenerator(torch_device=device)
 
     # Run tracking
@@ -235,12 +238,17 @@ def run(
                         id = output[4]
                         cls = output[5]
 
-                        if conf > 0.5:
+                        if conf > 0.05:
                             t6 = time_sync()
-                            xmin, ymin, xmax, ymax = int(bboxes[0]), int(bboxes[1]), int(bboxes[2]), int(bboxes[3])
-                            # pil_obj_img.save('foo.png')
-                            featvect = feaVecGenerator.feature_vector_from_image(Image.fromarray(imc[ymin:ymax, xmin:xmax]))
-                            tracking_objs.append(RegionObject([xmin, ymin, xmax, ymax], featvect, -1))
+                            xmin, ymin, xmax, ymax = bboxes[0], bboxes[1], bboxes[2], bboxes[3]
+                            # featvect = feaVecGenerator.feature_vector_from_image(Image.fromarray(imc[ymin:ymax, xmin:xmax]))
+                            # tracking_objs.append(RawObject([xmin, ymin, xmax, ymax], feature=None, id=int(id)))
+                            fetch_obj = tracker.object_with(obj_id=int(id))
+                            if fetch_obj is not None:
+                                fetch_obj.update(pos=[xmin, ymin, xmax, ymax])
+                            else:
+                                fetch_obj = TrackingObject([xmin, ymin, xmax, ymax], feature=None, id=int(id))
+                                tracker.append_object(obj=fetch_obj)
                             t7 = time_sync()
                             dt[4] += t7 - t6
 
@@ -262,7 +270,7 @@ def run(
                             if not hide_labels:
                                 label = f'{id}'
                             if not hide_class:
-                                label += f' {name[c]}'
+                                label += f' {names[c]}'
                             if not hide_conf:
                                 label += f' {conf:.2f}'
 
@@ -289,12 +297,13 @@ def run(
             # paint regional tracking
             tracker.trackObjects(tracking_objs)
             tracker.evictTimeoutObjectFromDB()
-            tracker.drawTrajectory(im0, tracking_objs)
+            tracker.drawTrajectory(im0, tracker.objects)
 
-            checkLineCrosses(boundaryLines, tracking_objs)
+            checkLineCrosses(boundaryLines, tracker.objects)
             drawBoundaryLines(im0, boundaryLines)
+            resetLineCrosses(boundaryLines)
 
-            checkAreaIntrusion(areas, tracking_objs)
+            checkAreaIntrusion(areas, tracker.objects)
             drawAreas(im0, areas)
 
             # Stream results
