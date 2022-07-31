@@ -20,17 +20,11 @@ def checkAreaIntrusion(areas, objects):
     for area in areas:
         area.count = 0
         for obj in objects:
-            p0 = (obj.pos[0] + obj.pos[2]) // 2
-            p1 = (obj.pos[1] + obj.pos[3]) // 2
+            # p0 = (obj.pos[0] + obj.pos[2]) // 2
+            # p1 = (obj.pos[1] + obj.pos[3]) // 2
             # if cv2.pointPolygonTest(area.contour, (p0, p1), False)>=0:
-            if pointPolygonTest(area.contour, (p0, p1)):
+            if pointPolygonTest(area.contour, obj.anchor_pt()):
                 area.count += 1
-    # if audio_enable_flag:
-    #     if area.count > 0:
-    #         sound_thread_warning.play()
-    #     else:
-    #         sound_thread_warning.stop()
-
 
 # Draw areas (polygons)
 def drawAreas(img, areas):
@@ -58,12 +52,8 @@ def checkLineCross(boundary_line, trajectory):
                                 bLine_p1)  # Calculate angle between trajectory and boundary line
         if angle < 180:
             boundary_line.count1 += 1
-            # if audio_enable_flag:
-            #     sound_thread_welcome.play()
         else:
             boundary_line.count2 += 1
-            # if audio_enable_flag:
-            #     sound_thread_thankyou.play()
         # cx, cy = calcIntersectPoint(traj_p0, traj_p1, bLine_p0, bLine_p1) # Calculate the intersect coordination
 
 

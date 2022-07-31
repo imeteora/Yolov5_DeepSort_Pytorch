@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 
 # limit the number of cpus used by high performance libraries
 from PIL import Image
@@ -39,21 +39,21 @@ from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 
 # regional tracking library
-from regional_tracking import area, boundaryLine, drawBoundaryLines, drawAreas, objectTracker, checkLineCrosses, \
-    checkAreaIntrusion, region_object, FeatureVectorGenerator
+from regional_tracking import area, boundaryLine, drawBoundaryLines, drawAreas, RegionDetectTracker, checkLineCrosses, \
+    checkAreaIntrusion, RegionObject, FeatureVectorGenerator
 
 # remove duplicated stream handler to avoid duplicated logging
 logging.getLogger().removeHandler(logging.getLogger().handlers[0])
 
 # boundary lines
 boundaryLines = [
-    boundaryLine([ 300,  40,  20, 400 ]),
-    boundaryLine([ 440,  40, 700, 400 ])
+    boundaryLine([713, 480, 1125, 482]),
+    boundaryLine([545, 630, 1050, 630])
 ]
 
 # Areas
 areas = [
-    area([ [200,200], [500,180], [600,400], [300,300], [100,360] ])
+    area([[200, 200], [500, 180], [600, 400], [300, 300], [100, 360]])
 ]
 
 
@@ -148,14 +148,15 @@ def run(
     outputs = [None] * nr_sources
 
     # REGIONAL TRACKING VARS
-    tracker = objectTracker()
+    tracker = RegionDetectTracker()
     feaVecGenerator = FeatureVectorGenerator(torch_device=device)
 
     # Run tracking
     model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
-    dt, seen = [0.0, 0.0, 0.0, 0.0], 0
+    dt, seen = [0.0, 0.0, 0.0, 0.0, 0.0], 0
     curr_frames, prev_frames = [None] * nr_sources, [None] * nr_sources
     for frame_idx, (path, im, im0s, vid_cap, s) in enumerate(dataset):
+        t1, t2, t3, t4, t5, t6, t7 = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
@@ -199,7 +200,7 @@ def run(
 
             txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
             s += '%gx%g ' % im.shape[2:]  # print string
-            imc = im0.copy() #if save_crop else im0  # for save_crop
+            imc = im0.copy()  # if save_crop else im0  # for save_crop
 
             annotator = Annotator(im0, line_width=2, pil=not ascii)
             if cfg.STRONGSORT.ECC:  # camera motion compensation
@@ -234,12 +235,14 @@ def run(
                         id = output[4]
                         cls = output[5]
 
-                        if conf > 0.75:
-                            xmin, ymin, xmax , ymax = int(bboxes[0]), int(bboxes[1]), int(bboxes[2]), int(bboxes[3])
-                            pil_obj_img = Image.fromarray(imc[ymin:ymax, xmin:xmax])
+                        if conf > 0.5:
+                            t6 = time_sync()
+                            xmin, ymin, xmax, ymax = int(bboxes[0]), int(bboxes[1]), int(bboxes[2]), int(bboxes[3])
                             # pil_obj_img.save('foo.png')
-                            featvect = feaVecGenerator.feature_vector_from_image(pil_obj_img)
-                            tracking_objs.append(region_object([xmin, ymin, xmax, ymax], featvect, -1))
+                            featvect = feaVecGenerator.feature_vector_from_image(Image.fromarray(imc[ymin:ymax, xmin:xmax]))
+                            tracking_objs.append(RegionObject([xmin, ymin, xmax, ymax], featvect, -1))
+                            t7 = time_sync()
+                            dt[4] += t7 - t6
 
                         # if save_txt:
                         #     # to MOT format
@@ -255,28 +258,33 @@ def run(
                         if save_vid or save_crop or show_vid:  # Add bbox to image
                             c = int(cls)  # integer class
                             id = int(id)  # integer id
-                            label = None \
-                                if hide_labels \
-                                else (f'{id} {names[c]}'
-                                      if hide_conf
-                                      else (f'{id} {conf:.2f}'
-                                            if hide_class
-                                            else f'{id} {names[c]} {conf:.2f}'))
-                            annotator.box_label(bboxes, label, color=colors(c, True))
+                            label = None
+                            if not hide_labels:
+                                label = f'{id}'
+                            if not hide_class:
+                                label += f' {name[c]}'
+                            if not hide_conf:
+                                label += f' {conf:.2f}'
+
+                            if label is not None and len(label):
+                                annotator.box_label(bboxes, label, color=colors(c, True))
+
                             if save_crop:
                                 txt_file_name = txt_file_name \
                                     if (isinstance(path, list) and len(path) > 1) \
                                     else ''
                                 save_one_box(bboxes,
                                              imc,
-                                             file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg',
+                                             file=save_dir / 'crops' / txt_file_name / names[
+                                                 c] / f'{id}' / f'{p.stem}.jpg',
                                              BGR=True)
 
-                LOGGER.info(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s)')
+                LOGGER.info(
+                    f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s), RegionalTrack:({t7 - t6:.3f}s)')
 
             else:
                 strong_sort_list[i].increment_ages()
-                LOGGER.info('No detections')
+                # LOGGER.info('No detections')
 
             # paint regional tracking
             tracker.trackObjects(tracking_objs)
@@ -288,7 +296,6 @@ def run(
 
             checkAreaIntrusion(areas, tracking_objs)
             drawAreas(im0, areas)
-
 
             # Stream results
             im0 = annotator.result()
