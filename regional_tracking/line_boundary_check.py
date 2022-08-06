@@ -2,48 +2,53 @@ import numpy as np
 from numpy import linalg as LA
 
 
-class boundaryLine:
+class BoundaryLine:
     def __init__(self, line=(0, 0, 0, 0)):
         self.p0 = (line[0], line[1])
         self.p1 = (line[2], line[3])
         self.color = (0, 255, 255)
-        self.lineThinkness = 4
+        self.lineThinkness = 2
         self.textColor = (0, 255, 255)
         self.textSize = 4
         self.textThinkness = 2
         self.count1 = 0
         self.count2 = 0
 
+    def setIntersect(self, flag: bool):
+        self.color = (0, 0, 255) if flag else (0, 255, 255)
+
+    def resetIntersect(self):
+        self.setIntersect(flag=False)
 
 # ---------------------------------------------
 # Checking boundary line crossing detection
 
-def line(p1, p2):
-    A = (p1[1] - p2[1])
-    B = (p2[0] - p1[0])
-    C = (p1[0] * p2[1] - p2[0] * p1[1])
-    return A, B, -C
+# def line(p1, p2):
+#     A = (p1[1] - p2[1])
+#     B = (p2[0] - p1[0])
+#     C = (p1[0] * p2[1] - p2[0] * p1[1])
+#     return A, B, -C
 
 
 # Calcuate the coordination of intersect point of line segments - 線分同士が交差する座標を計算
-def calcIntersectPoint(line1p1, line1p2, line2p1, line2p2):
-    L1 = line(line1p1, line1p2)
-    L2 = line(line2p1, line2p2)
-    D = L1[0] * L2[1] - L1[1] * L2[0]
-    Dx = L1[2] * L2[1] - L1[1] * L2[2]
-    Dy = L1[0] * L2[2] - L1[2] * L2[0]
-    x = Dx / D
-    y = Dy / D
-    return x, y
+# def calcIntersectPoint(line1p1, line1p2, line2p1, line2p2):
+#     L1 = line(line1p1, line1p2)
+#     L2 = line(line2p1, line2p2)
+#     D = L1[0] * L2[1] - L1[1] * L2[0]
+#     Dx = L1[2] * L2[1] - L1[1] * L2[2]
+#     Dy = L1[0] * L2[2] - L1[2] * L2[0]
+#     x = Dx / D
+#     y = Dy / D
+#     return x, y
 
 
-# Check if line segments intersect - 線分同士が交差するかどうかチェック
-def checkIntersect(p1, p2, p3, p4):
-    tc1 = (p1[0] - p2[0]) * (p3[1] - p1[1]) + (p1[1] - p2[1]) * (p1[0] - p3[0])
-    tc2 = (p1[0] - p2[0]) * (p4[1] - p1[1]) + (p1[1] - p2[1]) * (p1[0] - p4[0])
-    td1 = (p3[0] - p4[0]) * (p1[1] - p3[1]) + (p3[1] - p4[1]) * (p3[0] - p1[0])
-    td2 = (p3[0] - p4[0]) * (p2[1] - p3[1]) + (p3[1] - p4[1]) * (p3[0] - p2[0])
-    return tc1 * tc2 < 0 and td1 * td2 < 0
+# Check if line segments intersect - 判断线段是否相交，这个算法是错误的。当一个点在另外一个条线段上时，该算法有问题
+# def checkIntersect(p1, p2, p3, p4) -> bool:
+#     tc1 = (p1[0] - p2[0]) * (p3[1] - p1[1]) + (p1[1] - p2[1]) * (p1[0] - p3[0])
+#     tc2 = (p1[0] - p2[0]) * (p4[1] - p1[1]) + (p1[1] - p2[1]) * (p1[0] - p4[0])
+#     td1 = (p3[0] - p4[0]) * (p1[1] - p3[1]) + (p3[1] - p4[1]) * (p3[0] - p1[0])
+#     td2 = (p3[0] - p4[0]) * (p2[1] - p3[1]) + (p3[1] - p4[1]) * (p3[0] - p2[0])
+#     return tc1 * tc2 < 0 and td1 * td2 < 0
 
 
 # convert a line to a vector
@@ -73,7 +78,7 @@ def calcVectorAngle(point1, point2, point3, point4):
 # Test whether the test_point is in the polygon or not - 指定の点がポリゴン内に含まれるかどうかを判定
 # test_point = (x,y)
 # polygon = collection of points  [ (x0,y0), (x1,y1), (x2,y2) ... ]
-def pointPolygonTest(polygon, test_point):
+def pointPolygonTest(polygon, test_point) -> bool:
     if len(polygon) < 3:
         return False
     prev_point = polygon[-1]  # Use the last point as the starting point to close the polygon
