@@ -1,16 +1,19 @@
+import uuid
+
 import numpy as np
 from numpy import linalg as LA
 
 
 class BoundaryLine:
     def __init__(self, line=(0, 0, 0, 0)):
+        self.uuid = uuid.uuid4()
         self.p0 = (line[0], line[1])
         self.p1 = (line[2], line[3])
         self.color = (0, 255, 255)
-        self.lineThinkness = 2
+        self.line_thickness = 2
         self.textColor = (0, 255, 255)
         self.textSize = 4
-        self.textThinkness = 2
+        self.text_thickness = 2
         self.count1 = 0
         self.count2 = 0
 
@@ -19,6 +22,7 @@ class BoundaryLine:
 
     def resetIntersect(self):
         self.setIntersect(flag=False)
+
 
 # ---------------------------------------------
 # Checking boundary line crossing detection
@@ -62,7 +66,7 @@ def line_vectorize(point1, point2):
 # Calculate the angle made by two line segments - 線分同士が交差する角度を計算
 # point = (x,y)
 # line1(point1)-(point2), line2(point3)-(point4)
-def calcVectorAngle(point1, point2, point3, point4):
+def calc_vector_angle(point1, point2, point3, point4):
     u = np.array(line_vectorize(point1, point2))
     v = np.array(line_vectorize(point3, point4))
     i = np.inner(u, v)
@@ -78,7 +82,7 @@ def calcVectorAngle(point1, point2, point3, point4):
 # Test whether the test_point is in the polygon or not - 指定の点がポリゴン内に含まれるかどうかを判定
 # test_point = (x,y)
 # polygon = collection of points  [ (x0,y0), (x1,y1), (x2,y2) ... ]
-def pointPolygonTest(polygon, test_point) -> bool:
+def point_polygon_test(polygon, test_point) -> bool:
     if len(polygon) < 3:
         return False
     prev_point = polygon[-1]  # Use the last point as the starting point to close the polygon

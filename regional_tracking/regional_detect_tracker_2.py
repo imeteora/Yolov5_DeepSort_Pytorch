@@ -1,13 +1,19 @@
 import time
 
-from regional_tracking import RawObject, RegionalDetectTracker
+from regional_tracking import RawObject, RegionalDetectTracker, TrackingObject
 
 
 class RegionalDetectTrackerM2(RegionalDetectTracker):
 
-    def __init__(self):
+    @property
+    def objects(self) -> [RawObject]:
+        return [obj for (obj_id, obj) in self.object_db.items()]
+
+    def __init__(self, conf_thres: float = 0.5):
         super().__init__()
+        self.object_db = None
         self.timeout = 3  # sec
+        self.conf_thres = conf_thres
         self.clear_db()
 
     def clear_db(self):
@@ -17,9 +23,15 @@ class RegionalDetectTrackerM2(RegionalDetectTracker):
         now = time.monotonic()
         self.object_db = {key: val for key, val in self.object_db.items() if val.time + self.timeout >= now}
 
-    @property
-    def objects(self) -> [RawObject]:
-        return [obj for (obj_id, obj) in self.object_db.items()]
+    def try_tracking(self, pos: [int], id: int, feature=None, conf: float = 0.5):
+        if conf < self.conf_thres:
+            return
+
+        if found := self.object_with(obj_id=id):
+            found.update(pos=pos)
+        else:
+            new_obj = TrackingObject(pos, feature=feature, id=id)
+            self.append_object(obj=new_obj)
 
     def object_with(self, obj_id: int) -> any:
         return self.object_db[obj_id] \

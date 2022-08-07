@@ -151,7 +151,7 @@ def run(
     outputs = [None] * nr_sources
 
     # REGIONAL TRACKING VARS
-    tracker = RegionalDetectTrackerM2()
+    tracker = RegionalDetectTrackerM2(conf_thres=conf_thres)
     feaVecGenerator = FeatureVectorGenerator(torch_device=device)
 
     # Run tracking
@@ -209,8 +209,6 @@ def run(
             if cfg.STRONGSORT.ECC:  # camera motion compensation
                 strong_sort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
 
-            tracking_objs = []  # for REGIONAL TRACKING
-
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -238,19 +236,13 @@ def run(
                         id = output[4]
                         cls = output[5]
 
-                        if conf > 0.05:
-                            t6 = time_sync()
-                            xmin, ymin, xmax, ymax = bboxes[0], bboxes[1], bboxes[2], bboxes[3]
-                            # featvect = feaVecGenerator.feature_vector_from_image(Image.fromarray(imc[ymin:ymax, xmin:xmax]))
-                            # tracking_objs.append(RawObject([xmin, ymin, xmax, ymax], feature=None, id=int(id)))
-                            fetch_obj = tracker.object_with(obj_id=int(id))
-                            if fetch_obj is not None:
-                                fetch_obj.update(pos=[xmin, ymin, xmax, ymax])
-                            else:
-                                fetch_obj = TrackingObject([xmin, ymin, xmax, ymax], feature=None, id=int(id))
-                                tracker.append_object(obj=fetch_obj)
-                            t7 = time_sync()
-                            dt[4] += t7 - t6
+                        t6 = time_sync()
+                        tracker.try_tracking(pos=[bboxes[0], bboxes[1], bboxes[2], bboxes[3]],
+                                             id=int(id),
+                                             feature=None,
+                                             conf=conf)
+                        t7 = time_sync()
+                        dt[4] += t7 - t6
 
                         # if save_txt:
                         #     # to MOT format
@@ -283,8 +275,7 @@ def run(
                                     else ''
                                 save_one_box(bboxes,
                                              imc,
-                                             file=save_dir / 'crops' / txt_file_name / names[
-                                                 c] / f'{id}' / f'{p.stem}.jpg',
+                                             file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg',
                                              BGR=True)
 
                 LOGGER.info(
@@ -295,7 +286,7 @@ def run(
                 # LOGGER.info('No detections')
 
             # paint regional tracking
-            tracker.trackObjects(tracking_objs)
+            tracker.trackObjects(objects=[])
             tracker.evictTimeoutObjectFromDB()
             tracker.drawTrajectory(im0, tracker.objects)
 
@@ -330,7 +321,7 @@ def run(
 
             prev_frames[i] = curr_frames[i]
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(5) & 0xFF == 27:
             break
 
     # Print results
