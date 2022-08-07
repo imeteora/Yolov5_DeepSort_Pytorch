@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from regional_tracking import Point, line_intersect
-from regional_tracking.line_boundary_check import pointPolygonTest, calcVectorAngle
+from regional_tracking.line_boundary_check import point_polygon_test, calc_vector_angle
 
 
 # ------------------------------------
@@ -21,7 +21,7 @@ def checkAreaIntrusion(areas, objects):
     for area in areas:
         area.count = 0
         for obj in objects:
-            if pointPolygonTest(area.contour, obj.anchor_pt):
+            if point_polygon_test(area.contour, obj.anchor_pt):
                 area.count += 1
 
 
@@ -38,35 +38,38 @@ def drawAreas(img, areas):
 
 # in: boundary_line = boundaryLine class object
 #     trajectory   = (x1, y1, x2, y2)
-def checkLineCross(boundary_line, trajectory):
-    traj_p0 = Point(trajectory[0], trajectory[1])  # Trajectory of an object
-    traj_p1 = Point(trajectory[2], trajectory[3])
+def checkLineCross(boundary_line, trajectory) -> bool:
+    traj_p0 = trajectory[0]  # Trajectory of an object
+    traj_p1 = trajectory[1]
     bLine_p0 = Point(boundary_line.p0[0], boundary_line.p0[1])  # Boundary line
     bLine_p1 = Point(boundary_line.p1[0], boundary_line.p1[1])
     intersect = line_intersect(traj_p0, traj_p1, bLine_p0, bLine_p1)  # Check if intersect or not
 
     if intersect is True:
         boundary_line.setIntersect(flag=intersect)
-        angle = calcVectorAngle((traj_p0.x, traj_p0.y),
-                                (traj_p1.x, traj_p1.y),
-                                (bLine_p0.x, bLine_p0.y),
-                                (bLine_p1.x, bLine_p1.y))  # Calculate angle between trajectory and boundary line
+        angle = calc_vector_angle((traj_p0.x, traj_p0.y),
+                                  (traj_p1.x, traj_p1.y),
+                                  (bLine_p0.x, bLine_p0.y),
+                                  (bLine_p1.x, bLine_p1.y))  # Calculate angle between trajectory and boundary line
         if angle < 180:
             boundary_line.count1 += 1
         else:
             boundary_line.count2 += 1
         # cx, cy = calcIntersectPoint(traj_p0, traj_p1, bLine_p0, bLine_p1) # Calculate the intersect coordination
 
+    return intersect
 
 # Multiple lines cross check
 def checkLineCrosses(boundaryLines, objects):
-    for obj in objects:
+    objs_with_trajs = [obj for obj in objects if len(obj.trajectory) > 1]
+    for obj in objs_with_trajs:
         traj = obj.trajectory
-        if len(traj) > 1:
-            p0 = traj[-2]
-            p1 = traj[-1]
-            for line in boundaryLines:
-                checkLineCross(line, [p0[0], p0[1], p1[0], p1[1]])
+        p0 = Point.point(pts=traj[-2])
+        p1 = Point.point(pts=traj[-1])
+        lines_not_crossed = [bline for bline in boundaryLines if bline.uuid not in obj.crossed_lines]
+        for line in lines_not_crossed:
+            crossed = checkLineCross(line, [p0, p1])
+            obj.crossed_lines.append(line.uuid) if crossed else None
 
 
 def resetLineCrosses(boundaryLines):

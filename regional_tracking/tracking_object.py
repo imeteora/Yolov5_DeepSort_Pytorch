@@ -9,6 +9,8 @@ from regional_tracking import RawObject
 class TrackingObject(RawObject):
     def __init__(self, pos, feature, id: int = -1):
         super().__init__(pos=pos, feature=feature, id=id)
+        self.crossed_lines = []
+
         self.current_measurement = self.last_measurement = np.array((2, 1), np.float32)
         self.current_prediction = self.last_prediction = np.array((2, 1), np.float32)
 
@@ -38,6 +40,7 @@ class TrackingObject(RawObject):
         # lpx, lpy = self.last_prediction[0], self.last_prediction[1]  # 上一次预测坐标
         # cpx, cpy = self.current_prediction[0], self.current_prediction[1]  # 当前预测坐标
 
+        # 加入新的轨迹点（经过kalman计算之后）
         if len(self.trajectory) > 30:
             self.trajectory = self.trajectory[1:]
         self.trajectory.append(self.anchor_pt)
