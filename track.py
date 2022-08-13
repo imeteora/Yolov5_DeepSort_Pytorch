@@ -1,6 +1,6 @@
 import argparse
 import os
-from regional_tracking.area_tracking import area
+from regional_tracking.area_tracking import Area
 
 from regional_tracking.regional_detect_tracker_2 import RegionalDetectTrackerM2
 
@@ -56,7 +56,7 @@ boundaryLines = [
 
 # Areas
 areas = [
-    area([[804, 334], [529, 482], [1313, 618], [1498, 432]])
+    Area([[804, 334], [529, 482], [1313, 618], [1498, 432]])
 ]
 
 debugLogger = print
@@ -362,8 +362,8 @@ def parse_opt():
     parser.add_argument('--config-strongsort', type=str, default='strong_sort/configs/strong_sort.yaml')
     parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.5, help='confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.4, help='confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.4, help='NMS IoU threshold')
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--show-vid', action='store_true', help='display tracking video results')
