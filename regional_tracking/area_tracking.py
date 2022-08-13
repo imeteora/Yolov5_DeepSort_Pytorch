@@ -1,3 +1,4 @@
+from audioop import cross
 import cv2
 import numpy as np
 
@@ -41,8 +42,8 @@ def drawAreas(img, areas):
 def checkLineCross(boundary_line, trajectory) -> bool:
     traj_p0 = trajectory[0]  # Trajectory of an object
     traj_p1 = trajectory[1]
-    bLine_p0 = Point(boundary_line.p0[0], boundary_line.p0[1])  # Boundary line
-    bLine_p1 = Point(boundary_line.p1[0], boundary_line.p1[1])
+    bLine_p0 = boundary_line.p0 # Point(boundary_line.p0[0], boundary_line.p0[1])  # Boundary line
+    bLine_p1 = boundary_line.p1 # Point(boundary_line.p1[0], boundary_line.p1[1])
     intersect = line_intersect(traj_p0, traj_p1, bLine_p0, bLine_p1)  # Check if intersect or not
 
     if intersect is True:
@@ -63,13 +64,14 @@ def checkLineCross(boundary_line, trajectory) -> bool:
 def checkLineCrosses(boundaryLines, objects):
     objs_with_trajs = [obj for obj in objects if len(obj.trajectory) > 1]
     for obj in objs_with_trajs:
-        traj = obj.trajectory
-        p0 = Point.point(pts=traj[-2])
-        p1 = Point.point(pts=traj[-1])
         lines_not_crossed = [bline for bline in boundaryLines if bline.uuid not in obj.crossed_lines]
         for line in lines_not_crossed:
-            crossed = checkLineCross(line, [p0, p1])
-            obj.crossed_lines.append(line.uuid) if crossed else None
+            for idx in range(len(obj.trajectory) - 1):
+                p0 = Point.point(obj.trajectory[idx])
+                p1 = Point.point(obj.trajectory[idx + 1])
+                if checkLineCross(line, [p0, p1]):
+                    obj.crossed_lines.append(line.uuid)
+                    break
 
 
 def resetLineCrosses(boundaryLines):

@@ -1,5 +1,6 @@
 import argparse
 import os
+from regional_tracking.area_tracking import area
 
 from regional_tracking.regional_detect_tracker_2 import RegionalDetectTrackerM2
 
@@ -34,7 +35,7 @@ from yolov5.utils.datasets import VID_FORMATS, LoadImages, LoadStreams
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, check_requirements, cv2, \
         check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr, print_args, check_file, set_logging, \
         save_one_box, check_suffix
-from yolov5.utils.torch_utils import select_device, time_sync
+from yolov5.utils.torch_utils import select_device, time_sync, LOGGER
 from yolov5.utils.plots import Annotator, colors
 from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
@@ -49,16 +50,16 @@ from regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkL
 # boundary lines
 boundaryLines = [
     # boundaryLine([655, 450, 1125, 450]),    # for hf video 1
-    BoundaryLine([0, 540, 1820, 540]),    # for common test.mp4
-    # boundaryLine([655, 500, 1125, 500]),
-    # boundaryLine([506, 630, 1050, 630])
+    BoundaryLine([38, 521, 1820, 889]),    # for common test.mp4
+    BoundaryLine([755, 194, 1876, 330])
 ]
 
 # Areas
 areas = [
-    # area([[740, 417], [670, 480], [1033, 480], [1043, 417]])    # invert circle
+    area([[804, 334], [529, 482], [1313, 618], [1498, 432]])
 ]
 
+debugLogger = print
 
 @torch.no_grad()
 def run(source='0',
@@ -115,18 +116,21 @@ def run(source='0',
     device = select_device(device)
     half &= device.type != 'cpu'
     
-    stride, names = 64, [f'class{i}' for i in range(1000)]  # assign defaults
+    # stride, names = 64, [f'class{i}' for i in range(1000)]  # assign defaults
     w = str(yolo_weights[0] if isinstance(yolo_weights, list) else yolo_weights)
     classify, suffix, suffixes = False, Path(w).suffix.lower(), ['.pt', '.onnx', '.tflite', '.pb', '']
     check_suffix(w, suffixes)  # check weights have acceptable suffix
     pt, onnx, tflite, pb, saved_model = (suffix == x for x in suffixes)  # backend booleans
     
-    model = torch.jit.load(w) if 'torchscript' in w else attempt_load(yolo_weights, map_location=device)
+    model = torch.jit.load(w) \
+        if 'torchscript' in w \
+        else attempt_load(yolo_weights, map_location=device)
     stride = int(model.stride.max()) # model stride
-    names = model.module.names if hasattr(model, 'module') else model.names # get class names
-    if half:
-        model.half()    # to FP16
-        
+    names = model.module.names \
+        if hasattr(model, 'module') \
+        else model.names # get class names
+
+    model.half() if half else None  # to FP16
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
     # Dataloader
@@ -295,11 +299,11 @@ def run(source='0',
                                              file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg',
                                              BGR=True)
 
-                print(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s), RegionalTrack:({t7 - t6:.3f}s)')
+                debugLogger(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s), RegionalTrack:({t7 - t6:.3f}s)')
 
             else:
                 strong_sort_list[i].increment_ages()
-                # print('No detections')
+                debugLogger('No detections')
 
             # paint regional tracking
             tracker.trackObjects(objects=[])
@@ -342,11 +346,11 @@ def run(source='0',
 
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
-    print(
-        f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort update per image at shape {(1, 3, *imgsz)}' % t)
+    debugLogger(
+        f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort, %.1fms update per image at shape {(1, 3, *imgsz)}' % t)
     if save_txt or save_vid:
         s = f"\n{len(list(save_dir.glob('tracks/*.txt')))} tracks saved to {save_dir / 'tracks'}" if save_txt else ''
-        print(f"Results saved to {colorstr('bold', save_dir)}{s}")
+        debugLogger(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
         strip_optimizer(yolo_weights)  # update model (to fix SourceChangeWarning)
 

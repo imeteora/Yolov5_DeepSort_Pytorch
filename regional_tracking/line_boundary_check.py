@@ -3,12 +3,14 @@ import uuid
 import numpy as np
 from numpy import linalg as LA
 
+from regional_tracking.line_interset_util import Point
+
 
 class BoundaryLine:
     def __init__(self, line=(0, 0, 0, 0)):
         self.uuid = uuid.uuid4()
-        self.p0 = (line[0], line[1])
-        self.p1 = (line[2], line[3])
+        self.p0 = Point(line[0], line[1])
+        self.p1 = Point(line[2], line[3])
         self.color = (0, 255, 255)
         self.line_thickness = 2
         self.textColor = (0, 255, 255)

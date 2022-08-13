@@ -1,4 +1,5 @@
 import time
+from typing import List
 
 from regional_tracking import RawObject, RegionalDetectTracker, TrackingObject
 
@@ -6,7 +7,7 @@ from regional_tracking import RawObject, RegionalDetectTracker, TrackingObject
 class RegionalDetectTrackerM2(RegionalDetectTracker):
 
     @property
-    def objects(self) -> [RawObject]:
+    def objects(self) -> List[RawObject]:
         return [obj for (obj_id, obj) in self.object_db.items()]
 
     def __init__(self, conf_thres: float = 0.5):
@@ -23,7 +24,7 @@ class RegionalDetectTrackerM2(RegionalDetectTracker):
         now = time.monotonic()
         self.object_db = {key: val for key, val in self.object_db.items() if val.time + self.timeout >= now}
 
-    def try_tracking(self, pos: [int], id: int, feature=None, conf: float = 0.5):
+    def try_tracking(self, pos: List[int], id: int, feature=None, conf: float = 0.5):
         if conf < self.conf_thres:
             return
 
@@ -46,7 +47,7 @@ class RegionalDetectTrackerM2(RegionalDetectTracker):
         obj.trajectory = [obj.anchor_pt]
         self.object_db[obj.id] = obj
 
-    def trackObjects(self, objects: [RawObject]):
+    def trackObjects(self, objects: List[RawObject]):
         # if len(objects) <= 0:
         #     return
         #
