@@ -1,5 +1,6 @@
 import argparse
 import os
+from regional_tracking.area_tracking import area
 
 from regional_tracking.regional_detect_tracker_2 import RegionalDetectTrackerM2
 
@@ -29,13 +30,13 @@ if str(ROOT / 'strong_sort') not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 import logging
-from yolov5.models.common import DetectMultiBackend
-from yolov5.utils.dataloaders import VID_FORMATS, LoadImages, LoadStreams
-from yolov5.utils.general import (LOGGER, check_img_size, non_max_suppression, scale_coords, check_requirements, cv2,
-                                  check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr, print_args,
-                                  check_file)
-from yolov5.utils.torch_utils import select_device, time_sync
-from yolov5.utils.plots import Annotator, colors, save_one_box
+from yolov5.models.experimental import attempt_load
+from yolov5.utils.datasets import VID_FORMATS, LoadImages, LoadStreams
+from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, check_requirements, cv2, \
+        check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr, print_args, check_file, set_logging, \
+        save_one_box, check_suffix
+from yolov5.utils.torch_utils import select_device, time_sync, LOGGER
+from yolov5.utils.plots import Annotator, colors
 from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 
@@ -44,25 +45,24 @@ from regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkL
     checkAreaIntrusion, RawObject, FeatureVectorGenerator, resetLineCrosses, TrackingObject
 
 # remove duplicated stream handler to avoid duplicated logging
-logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+# logging.getLogger().removeHandler(logging.getLogger().handlers[0])
 
 # boundary lines
 boundaryLines = [
     # boundaryLine([655, 450, 1125, 450]),    # for hf video 1
-    BoundaryLine([0, 540, 1820, 540]),    # for common test.mp4
-    # boundaryLine([655, 500, 1125, 500]),
-    # boundaryLine([506, 630, 1050, 630])
+    BoundaryLine([38, 521, 1820, 889]),    # for common test.mp4
+    BoundaryLine([755, 194, 1876, 330])
 ]
 
 # Areas
 areas = [
-    # area([[740, 417], [670, 480], [1033, 480], [1043, 417]])    # invert circle
+    area([[804, 334], [529, 482], [1313, 618], [1498, 432]])
 ]
 
+debugLogger = print
 
 @torch.no_grad()
-def run(
-        source='0',
+def run(source='0',
         yolo_weights=WEIGHTS / 'yolov5m.pt',  # model.pt path(s),
         strong_sort_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt',  # model.pt path,
         config_strongsort=ROOT / 'strong_sort/configs/strong_sort.yaml',
@@ -112,9 +112,25 @@ def run(
     (save_dir / 'tracks' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
+    set_logging()
     device = select_device(device)
-    model = DetectMultiBackend(yolo_weights, device=device, dnn=dnn, data=None, fp16=half)
-    stride, names, pt = model.stride, model.names, model.pt
+    half &= device.type != 'cpu'
+    
+    # stride, names = 64, [f'class{i}' for i in range(1000)]  # assign defaults
+    w = str(yolo_weights[0] if isinstance(yolo_weights, list) else yolo_weights)
+    classify, suffix, suffixes = False, Path(w).suffix.lower(), ['.pt', '.onnx', '.tflite', '.pb', '']
+    check_suffix(w, suffixes)  # check weights have acceptable suffix
+    pt, onnx, tflite, pb, saved_model = (suffix == x for x in suffixes)  # backend booleans
+    
+    model = torch.jit.load(w) \
+        if 'torchscript' in w \
+        else attempt_load(yolo_weights, map_location=device)
+    stride = int(model.stride.max()) # model stride
+    names = model.module.names \
+        if hasattr(model, 'module') \
+        else model.names # get class names
+
+    model.half() if half else None  # to FP16
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
     # Dataloader
@@ -152,14 +168,19 @@ def run(
 
     # REGIONAL TRACKING VARS
     tracker = RegionalDetectTrackerM2(conf_thres=conf_thres)
-    feaVecGenerator = FeatureVectorGenerator(torch_device=device)
 
     # Run tracking
-    model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
+    # model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
+    
+    if pt and device.type != 'cpu':
+        model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))   # run once
+    
     dt, seen = [0.0, 0.0, 0.0, 0.0, 0.0], 0
     curr_frames, prev_frames = [None] * nr_sources, [None] * nr_sources
-    for frame_idx, (path, im, im0s, vid_cap, s) in enumerate(dataset):
-        t1, t2, t3, t4, t5, t6, t7 = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    for frame_idx, (path, im, im0s, vid_cap) in enumerate(dataset):
+        t1, t2, t3, t4, t5, t6, t7 = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  # time stamp
+        s = ""
+
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
@@ -171,7 +192,7 @@ def run(
 
         # Inference
         visualize = increment_path(save_dir / Path(path[0]).stem, mkdir=True) if visualize else False
-        pred = model(im, augment=augment, visualize=visualize)
+        pred = model(im, augment=augment, visualize=visualize)[0]
         t3 = time_sync()
         dt[1] += t3 - t2
 
@@ -192,7 +213,7 @@ def run(
                 p, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
                 p = Path(p)  # to Path
                 # video file
-                if source.endswith(VID_FORMATS):
+                if source.endswith(tuple(VID_FORMATS)):
                     txt_file_name = p.stem
                     save_path = str(save_dir / p.name)  # im.jpg, vid.mp4, ...
                 # folder with imgs
@@ -278,12 +299,11 @@ def run(
                                              file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg',
                                              BGR=True)
 
-                LOGGER.info(
-                    f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s), RegionalTrack:({t7 - t6:.3f}s)')
+                debugLogger(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s), RegionalTrack:({t7 - t6:.3f}s)')
 
             else:
                 strong_sort_list[i].increment_ages()
-                # LOGGER.info('No detections')
+                debugLogger('No detections')
 
             # paint regional tracking
             tracker.trackObjects(objects=[])
@@ -326,11 +346,11 @@ def run(
 
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
-    LOGGER.info(
-        f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort update per image at shape {(1, 3, *imgsz)}' % t)
+    debugLogger(
+        f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort, %.1fms update per image at shape {(1, 3, *imgsz)}' % t)
     if save_txt or save_vid:
         s = f"\n{len(list(save_dir.glob('tracks/*.txt')))} tracks saved to {save_dir / 'tracks'}" if save_txt else ''
-        LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
+        debugLogger(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
         strip_optimizer(yolo_weights)  # update model (to fix SourceChangeWarning)
 
@@ -369,7 +389,7 @@ def parse_opt():
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
-    print_args(vars(opt))
+    print_args(FILE.stem, opt)
     return opt
 
 

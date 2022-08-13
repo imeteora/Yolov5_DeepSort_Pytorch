@@ -1,10 +1,13 @@
+from typing import List
+
+
 class Point:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
     @classmethod
-    def point(cls, pts: [int]):
+    def point(cls, pts: List[int]):
         return cls(x=pts[0], y=pts[1])
 
 

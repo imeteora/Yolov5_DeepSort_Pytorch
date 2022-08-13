@@ -1,4 +1,5 @@
 import time
+from typing import List
 
 import cv2
 import numpy as np
@@ -28,7 +29,7 @@ class RegionalDetectTracker:
                 print("Discarded  : id {}".format(object.id))
 
     # objects = list of object class
-    def trackObjects(self, objects: [RawObject]):
+    def trackObjects(self, objects: List[RawObject]):
         # if no object found, skip the rest of processing
         if len(objects) == 0:
             return
