@@ -55,8 +55,8 @@ class BoundaryLine:
         self.p1 = Point(line[2], line[3])
         self.color = (0, 255, 255)
         self.line_thickness = 2
-        self.textColor = (0, 255, 255)
-        self.textSize = 4
+        self.text_color = (0, 255, 255)
+        self.font_size = 4
         self.text_thickness = 2
         self.count1 = 0
         self.count2 = 0
