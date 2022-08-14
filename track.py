@@ -1,6 +1,5 @@
 import argparse
 import os
-from regional_tracking.area_tracking import Area
 
 from regional_tracking.regional_detect_tracker_2 import RegionalDetectTrackerM2
 
@@ -42,7 +41,7 @@ from strong_sort.strong_sort import StrongSORT
 
 # regional tracking library
 from regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkLineCrosses, \
-    checkAreaIntrusion, RawObject, FeatureVectorGenerator, resetLineCrosses, TrackingObject
+    checkAreaIntrusion, RawObject, FeatureVectorGenerator, resetLineCrosses, TrackingObject, Area
 
 # remove duplicated stream handler to avoid duplicated logging
 # logging.getLogger().removeHandler(logging.getLogger().handlers[0])
