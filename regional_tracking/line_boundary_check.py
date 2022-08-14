@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import linalg as LA
 
-from regional_tracking import line_intersect, Point
+from regional_tracking.line_interset_util import line_intersect, Point
 
 
 # ---------------------------------------------

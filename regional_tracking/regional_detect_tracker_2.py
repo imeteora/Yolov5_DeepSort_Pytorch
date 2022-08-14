@@ -1,8 +1,9 @@
 import time
 from typing import List
 
-from regional_tracking import RawObject, RegionalDetectTracker, TrackingObject
-
+from regional_tracking.raw_object import RawObject
+from regional_tracking.regional_detect_tracker import RegionalDetectTracker
+from regional_tracking.tracking_object import TrackingObject
 
 class RegionalDetectTrackerM2(RegionalDetectTracker):
 
