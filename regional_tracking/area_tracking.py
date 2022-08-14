@@ -9,7 +9,7 @@ from regional_tracking.line_boundary_check import point_polygon_test, calc_vecto
 # ------------------------------------
 # Area intrusion detection
 
-class area:
+class Area:
     def __init__(self, contour):
         self.contour = np.array(contour, dtype=np.int32)
         self.count = 0
@@ -29,10 +29,7 @@ def checkAreaIntrusion(areas, objects):
 # Draw areas (polygons)
 def drawAreas(img, areas):
     for area in areas:
-        if area.count > 0:
-            color = (0, 0, 255)
-        else:
-            color = (255, 0, 0)
+        color = (0, 0, 255) if area.count > 0 else (255, 0, 0)
         cv2.polylines(img, [area.contour], True, color, 4)
         cv2.putText(img, str(area.count), (area.contour[0][0], area.contour[0][1]), cv2.FONT_HERSHEY_PLAIN, 4, color, 2)
 
