@@ -1,10 +1,9 @@
 import argparse
 import os
 
-from regional_tracking.regional_detect_tracker_2 import RegionalDetectTrackerM2
+from hf_vision.regional_tracking import RegionalDetectTrackerM2
 
 # limit the number of cpus used by high performance libraries
-
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -28,20 +27,19 @@ if str(ROOT / 'strong_sort') not in sys.path:
     sys.path.append(str(ROOT / 'strong_sort'))  # add strong_sort ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-import logging
 from yolov5.models.experimental import attempt_load
 from yolov5.utils.datasets import VID_FORMATS, LoadImages, LoadStreams
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, check_requirements, cv2, \
         check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr, print_args, check_file, set_logging, \
         save_one_box, check_suffix
-from yolov5.utils.torch_utils import select_device, time_sync, LOGGER
+from yolov5.utils.torch_utils import select_device, time_sync
 from yolov5.utils.plots import Annotator, colors
 from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 
 # regional tracking library
-from regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkLineCrosses, \
-    checkAreaIntrusion, RawObject, FeatureVectorGenerator, resetLineCrosses, TrackingObject, Area
+from hf_vision.regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkLineCrosses, \
+    checkAreaIntrusion, resetLineCrosses, Area
 
 # remove duplicated stream handler to avoid duplicated logging
 # logging.getLogger().removeHandler(logging.getLogger().handlers[0])
@@ -90,6 +88,7 @@ def run(source='0',
         hide_class=False,  # hide IDs
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
+        video_thread=None,
 ):
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
@@ -145,7 +144,7 @@ def run(source='0',
 
     # initialize StrongSORT
     cfg = get_config()
-    cfg.merge_from_file(opt.config_strongsort)
+    cfg.merge_from_file(config_strongsort)
 
     # Create as many strong sort instances as there are video sources
     strong_sort_list = []
@@ -224,6 +223,10 @@ def run(source='0',
             txt_path = str(save_dir / 'tracks' / txt_file_name)  # im.txt
             s += '%gx%g ' % im.shape[2:]  # print string
             imc = im0.copy()  # if save_crop else im0  # for save_crop
+
+            # TEST
+            if video_thread is not None:
+                video_thread.image = imc
 
             annotator = Annotator(im0, line_width=2, pil=not ascii)
             if cfg.STRONGSORT.ECC:  # camera motion compensation

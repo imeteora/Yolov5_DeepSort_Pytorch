@@ -1,0 +1,1 @@
+from hf_vision.core.singleton import *

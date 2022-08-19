@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EditorMainWindow</class>
+ <widget class="QMainWindow" name="EditorMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Regional Detect Editor</string>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>true</bool>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1024</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="actionNewRegionalMap"/>
+    <addaction name="actionOpenRegionalMap"/>
+    <addaction name="actionCloseRegionalMap"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuitApp"/>
+   </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionAboutApp"/>
+   </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <widget class="QMenu" name="menuChange_Media_Source">
+     <property name="title">
+      <string>Load Media Source</string>
+     </property>
+     <addaction name="actionSourceLocalCamera"/>
+     <addaction name="actionSourceRemoteCamera"/>
+     <addaction name="actionSourceMediaVideo"/>
+     <addaction name="actionSourceStaticImage"/>
+    </widget>
+    <addaction name="menuChange_Media_Source"/>
+   </widget>
+   <widget class="QMenu" name="menu_Project">
+    <property name="title">
+     <string>&amp;Project</string>
+    </property>
+    <widget class="QMenu" name="menuWeights">
+     <property name="title">
+      <string>Detect Settings</string>
+     </property>
+     <widget class="QMenu" name="menuReid_StrongSORT">
+      <property name="title">
+       <string>Reid (StrongSORT)</string>
+      </property>
+      <addaction name="actionConfigReIdSSWeights"/>
+      <addaction name="actionConfigReIdSSYaml"/>
+     </widget>
+     <addaction name="actionConfigYoloV5Weights"/>
+     <addaction name="menuReid_StrongSORT"/>
+    </widget>
+    <widget class="QMenu" name="menuRegionals_Settings">
+     <property name="title">
+      <string>Regionals Settings</string>
+     </property>
+     <addaction name="actionDrawLine"/>
+     <addaction name="actionDrawPolygonArea"/>
+    </widget>
+    <addaction name="actionStartDetect"/>
+    <addaction name="actionPauseDetect"/>
+    <addaction name="actionStopDetect"/>
+    <addaction name="separator"/>
+    <addaction name="menuWeights"/>
+    <addaction name="separator"/>
+    <addaction name="menuRegionals_Settings"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Edit"/>
+   <addaction name="menu_Project"/>
+   <addaction name="menu_Help"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionNewRegionalMap"/>
+   <addaction name="actionOpenRegionalMap"/>
+   <addaction name="actionCloseRegionalMap"/>
+   <addaction name="actionQuitApp"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar_2">
+   <property name="windowTitle">
+    <string>toolBar_2</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionSourceLocalCamera"/>
+   <addaction name="actionSourceRemoteCamera"/>
+   <addaction name="actionSourceMediaVideo"/>
+   <addaction name="actionSourceStaticImage"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar_3">
+   <property name="windowTitle">
+    <string>toolBar_3</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionStartDetect"/>
+   <addaction name="actionPauseDetect"/>
+   <addaction name="actionStopDetect"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar_4">
+   <property name="windowTitle">
+    <string>toolBar_4</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionConfigYoloV5Weights"/>
+   <addaction name="actionConfigReIdSSWeights"/>
+   <addaction name="actionConfigReIdSSYaml"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar_5">
+   <property name="windowTitle">
+    <string>toolBar_5</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionDrawLine"/>
+   <addaction name="actionDrawPolygonArea"/>
+  </widget>
+  <action name="actionNewRegionalMap">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/新建.png</normaloff>:/icon/icons/新建.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;New Regional Map</string>
+   </property>
+   <property name="statusTip">
+    <string>New Regional Map</string>
+   </property>
+  </action>
+  <action name="actionOpenRegionalMap">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/打开.png</normaloff>:/icon/icons/打开.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Open Regional Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Open Regional Map</string>
+   </property>
+  </action>
+  <action name="actionCloseRegionalMap">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/关闭.png</normaloff>:/icon/icons/关闭.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close Regional Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Close Regional Map</string>
+   </property>
+  </action>
+  <action name="action">
+   <property name="text">
+    <string>-</string>
+   </property>
+  </action>
+  <action name="actionQuitApp">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/退出.png</normaloff>:/icon/icons/退出.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="statusTip">
+    <string>Quit the application</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionAboutApp">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/告警实心.png</normaloff>:/icon/icons/告警实心.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;About...</string>
+   </property>
+   <property name="statusTip">
+    <string>Information about HuaFon</string>
+   </property>
+  </action>
+  <action name="actionDrawLine">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/线.png</normaloff>:/icon/icons/线.png</iconset>
+   </property>
+   <property name="text">
+    <string>Line (Cordon)</string>
+   </property>
+  </action>
+  <action name="actionDrawPolygonArea">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/面.png</normaloff>:/icon/icons/面.png</iconset>
+   </property>
+   <property name="text">
+    <string>Polygon (Warning Area)</string>
+   </property>
+  </action>
+  <action name="actionSourceLocalCamera">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/摄像头.png</normaloff>:/icon/icons/摄像头.png</iconset>
+   </property>
+   <property name="text">
+    <string>Local Camera</string>
+   </property>
+   <property name="statusTip">
+    <string>Using local camera likes USB-Camera</string>
+   </property>
+  </action>
+  <action name="actionSourceRemoteCamera">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/5摄像头.png</normaloff>:/icon/icons/5摄像头.png</iconset>
+   </property>
+   <property name="text">
+    <string>Remote Camera</string>
+   </property>
+   <property name="statusTip">
+    <string>Using remote camera by using RTSP protocol.</string>
+   </property>
+  </action>
+  <action name="actionSourceMediaVideo">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/file-mp4.png</normaloff>:/icon/icons/file-mp4.png</iconset>
+   </property>
+   <property name="text">
+    <string>Media Video</string>
+   </property>
+   <property name="statusTip">
+    <string>Using local video file, likes mp4.</string>
+   </property>
+  </action>
+  <action name="actionSourceStaticImage">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/插入图片.png</normaloff>:/icon/icons/插入图片.png</iconset>
+   </property>
+   <property name="text">
+    <string>Static Image</string>
+   </property>
+   <property name="statusTip">
+    <string>Using a static image from local file.</string>
+   </property>
+  </action>
+  <action name="actionStartDetect">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/播放2.png</normaloff>:/icon/icons/播放2.png</iconset>
+   </property>
+   <property name="text">
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionPauseDetect">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/暂停.png</normaloff>:/icon/icons/暂停.png</iconset>
+   </property>
+   <property name="text">
+    <string>Pause</string>
+   </property>
+  </action>
+  <action name="actionStopDetect">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/停止.png</normaloff>:/icon/icons/停止.png</iconset>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionConfigYoloV5Weights">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/AI、智能大脑-09.png</normaloff>:/icon/icons/AI、智能大脑-09.png</iconset>
+   </property>
+   <property name="text">
+    <string>YoloV5</string>
+   </property>
+  </action>
+  <action name="actionConfigReIdSSWeights">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/环保平台-智能巡检.png</normaloff>:/icon/icons/环保平台-智能巡检.png</iconset>
+   </property>
+   <property name="text">
+    <string>StrongSORT Weights</string>
+   </property>
+   <property name="toolTip">
+    <string>StrongSORT Weights</string>
+   </property>
+  </action>
+  <action name="actionConfigReIdSSYaml">
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/智能、连接-02.png</normaloff>:/icon/icons/智能、连接-02.png</iconset>
+   </property>
+   <property name="text">
+    <string>StrongSORT Yaml Config</string>
+   </property>
+   <property name="toolTip">
+    <string>StrongSORT Yaml Config</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="regional_detect.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>actionNewRegionalMap</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onRegMapNew()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionOpenRegionalMap</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onRegMapOpen()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseRegionalMap</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onRegMapClose()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionQuitApp</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onQuitApp()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionAboutApp</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onAboutApp()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSourceLocalCamera</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onChangeSourceLocalCamera()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSourceRemoteCamera</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onChangeSourceRemoteCamera()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSourceMediaVideo</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onChangeSourceMediaVideo()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSourceStaticImage</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>onChangeSourceStaticImage()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionConfigYoloV5Weights</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_change_yolov5_weights()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionConfigReIdSSWeights</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_change_reid_ss_weights()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionConfigReIdSSYaml</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_change_reid_ss_config()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDrawLine</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_draw_regional_boundary_line()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDrawPolygonArea</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_draw_regional_area()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>511</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onRegMapNew()</slot>
+  <slot>onRegMapOpen()</slot>
+  <slot>onRegMapClose()</slot>
+  <slot>onQuitApp()</slot>
+  <slot>onAboutApp()</slot>
+  <slot>onChangeSourceLocalCamera()</slot>
+  <slot>onChangeSourceRemoteCamera()</slot>
+  <slot>onChangeSourceMediaVideo()</slot>
+  <slot>onChangeSourceStaticImage()</slot>
+  <slot>on_change_yolov5_weights()</slot>
+  <slot>on_change_reid_ss_weights()</slot>
+  <slot>on_change_reid_ss_config()</slot>
+  <slot>on_mouse_draw_detect_region(QMouseEvent)</slot>
+  <slot>on_draw_regional_boundary_line()</slot>
+  <slot>on_draw_regional_area()</slot>
+ </slots>
+</ui>
