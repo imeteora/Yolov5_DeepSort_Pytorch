@@ -1,5 +1,6 @@
 import os
 import sys
+from enum import Enum
 from pathlib import Path
 
 import torch
@@ -29,6 +30,12 @@ boundaryLines = [
 areas = [
     Area([[804, 334], [529, 482], [1313, 618], [1498, 432]])
 ]
+
+
+class MouseEditType(Enum):
+    normal = 0
+    draw_boundary_line = normal + 1
+    draw_regional_area = draw_boundary_line + 1
 
 
 class EditorMainWindow(Ui_EditorMainWindow, QMainWindow):
@@ -126,10 +133,10 @@ class EditorMainWindow(Ui_EditorMainWindow, QMainWindow):
             self.tracking_config.reid_sort_config = reid_ss_config
 
     def on_draw_regional_boundary_line(self):
-        pass
+        print(self.on_draw_regional_boundary_line.__name__)
 
     def on_draw_regional_area(self):
-        pass
+        print(self.on_draw_regional_area.__name__)
 
     def on_canvas_update_notification_received_slot(self, image):
         self.canvas.setPixmap(image)
