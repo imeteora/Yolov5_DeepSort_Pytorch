@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPaintEvent, QPainter, QColor, QFont, QPixmap, QBrush
 from PyQt5.QtWidgets import QWidget
 

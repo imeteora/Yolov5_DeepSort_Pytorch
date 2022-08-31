@@ -15,7 +15,7 @@ class TrackingError(Enum):
 
 class VisionTrackingConfig(object):
     def __init__(self, device: str = 'cuda:0', source: str = None, yolo_weights: str = None, reid_sort_weights: str = None,
-                 reid_sort_config: str = ROOT / 'strong_sort/configs/strong_sort.yaml', image_size=(640, 640),
+                 reid_sort_config: str = ROOT / 'strong_sort/configs/strong_sort.yaml', image_size=[640, 640],
                  half=False, enable_dnn=False, track_classes=[0], using_tracker_vision=True, hide_classes=True,
                  hide_conf=False, conf_threshold=0.5):
         super().__init__()
@@ -24,7 +24,7 @@ class VisionTrackingConfig(object):
         self.yolo_weights = yolo_weights
         self.reid_sort_weights = reid_sort_weights
         self.reid_sort_config = reid_sort_config
-        self.imgsz = image_size if image_size else (640, 640)
+        self.imgsz = image_size if image_size else [640, 640]
         self.half = half if half is not None else False
         self.dnn = enable_dnn if enable_dnn is not None else False
         self.track_classes = track_classes

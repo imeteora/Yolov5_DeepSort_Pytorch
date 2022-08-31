@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'hf_vision/qt/dialog-about.ui'
+# Form implementation generated from reading ui file 'hf_vision/qt/dialog_about.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.2
 #

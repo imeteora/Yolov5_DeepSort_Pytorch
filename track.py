@@ -38,8 +38,10 @@ from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 
 # regional tracking library
-from hf_vision.regional_tracking import BoundaryLine, drawBoundaryLines, drawAreas, checkLineCrosses, \
-    checkAreaIntrusion, resetLineCrosses, Area
+from hf_vision.regional_tracking import checkLineCrosses, \
+    checkAreaIntrusion, Area
+from hf_vision import draw_boundary_lines, resetLineCrosses, draw_polylines
+from hf_vision.regional_tracking.obstacle_boundary_line import BoundaryLine
 
 # remove duplicated stream handler to avoid duplicated logging
 # logging.getLogger().removeHandler(logging.getLogger().handlers[0])
@@ -313,11 +315,11 @@ def run(source='0',
             tracker.drawTrajectory(im0, tracker.objects)
 
             checkLineCrosses(boundaryLines, tracker.objects)
-            drawBoundaryLines(im0, boundaryLines)
+            draw_boundary_lines(im0, boundaryLines)
             resetLineCrosses(boundaryLines)
 
             checkAreaIntrusion(areas, tracker.objects)
-            drawAreas(im0, areas)
+            draw_polylines(im0, areas)
 
             # Stream results
             im0 = annotator.result()

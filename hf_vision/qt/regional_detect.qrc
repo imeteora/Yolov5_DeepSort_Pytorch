@@ -1,5 +1,13 @@
 <RCC>
   <qresource prefix="icon">
+    <file>icons/crosshair.png</file>
+    <file>icons/Cross.png</file>
+    <file>icons/hand-tap-1.png</file>
+    <file>icons/move.png</file>
+    <file>icons/Open-Hand.png</file>
+    <file>icons/Grab-Hand.png</file>
+    <file>icons/arrow.png</file>
+    <file>icons/hand.png</file>
     <file>icons/智能、连接-02.png</file>
     <file>icons/智能、连接-01.png</file>
     <file>icons/AI、智能大脑-09.png</file>

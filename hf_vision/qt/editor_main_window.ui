@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
-    <height>768</height>
+    <width>1058</width>
+    <height>808</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,7 +22,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1024</width>
+     <width>1058</width>
      <height>30</height>
     </rect>
    </property>
@@ -82,8 +82,7 @@
      <addaction name="actionDrawLine"/>
      <addaction name="actionDrawPolygonArea"/>
     </widget>
-    <addaction name="actionStartDetect"/>
-    <addaction name="actionPauseDetect"/>
+    <addaction name="actionStartOrPauseDetect"/>
     <addaction name="actionStopDetect"/>
     <addaction name="separator"/>
     <addaction name="menuWeights"/>
@@ -136,8 +135,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionStartDetect"/>
-   <addaction name="actionPauseDetect"/>
+   <addaction name="actionStartOrPauseDetect"/>
    <addaction name="actionStopDetect"/>
   </widget>
   <widget class="QToolBar" name="toolBar_4">
@@ -164,6 +162,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionSelectNormal"/>
    <addaction name="actionDrawLine"/>
    <addaction name="actionDrawPolygonArea"/>
   </widget>
@@ -239,6 +238,9 @@
    </property>
   </action>
   <action name="actionDrawLine">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="regional_detect.qrc">
      <normaloff>:/icon/icons/线.png</normaloff>:/icon/icons/线.png</iconset>
@@ -248,6 +250,9 @@
    </property>
   </action>
   <action name="actionDrawPolygonArea">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="regional_detect.qrc">
      <normaloff>:/icon/icons/面.png</normaloff>:/icon/icons/面.png</iconset>
@@ -304,22 +309,16 @@
     <string>Using a static image from local file.</string>
    </property>
   </action>
-  <action name="actionStartDetect">
+  <action name="actionStartOrPauseDetect">
    <property name="icon">
     <iconset resource="regional_detect.qrc">
      <normaloff>:/icon/icons/播放2.png</normaloff>:/icon/icons/播放2.png</iconset>
    </property>
    <property name="text">
-    <string>Start</string>
+    <string>Start/Pause</string>
    </property>
-  </action>
-  <action name="actionPauseDetect">
-   <property name="icon">
-    <iconset resource="regional_detect.qrc">
-     <normaloff>:/icon/icons/暂停.png</normaloff>:/icon/icons/暂停.png</iconset>
-   </property>
-   <property name="text">
-    <string>Pause</string>
+   <property name="toolTip">
+    <string>Start/Pause detect</string>
    </property>
   </action>
   <action name="actionStopDetect">
@@ -362,6 +361,24 @@
    </property>
    <property name="toolTip">
     <string>StrongSORT Yaml Config</string>
+   </property>
+  </action>
+  <action name="actionSelectNormal">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="regional_detect.qrc">
+     <normaloff>:/icon/icons/arrow.png</normaloff>:/icon/icons/arrow.png</iconset>
+   </property>
+   <property name="text">
+    <string>SelectNormal</string>
+   </property>
+   <property name="toolTip">
+    <string>Select mode</string>
    </property>
   </action>
  </widget>
@@ -593,6 +610,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSelectNormal</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_draw_reset_normal()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>528</x>
+     <y>403</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionStartOrPauseDetect</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_tracking_start_or_pause()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>528</x>
+     <y>403</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionStopDetect</sender>
+   <signal>triggered()</signal>
+   <receiver>EditorMainWindow</receiver>
+   <slot>on_tracking_stop()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>528</x>
+     <y>403</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>onRegMapNew()</slot>
@@ -610,5 +675,8 @@
   <slot>on_mouse_draw_detect_region(QMouseEvent)</slot>
   <slot>on_draw_regional_boundary_line()</slot>
   <slot>on_draw_regional_area()</slot>
+  <slot>on_draw_reset_normal()</slot>
+  <slot>on_tracking_start_or_pause()</slot>
+  <slot>on_tracking_stop()</slot>
  </slots>
 </ui>

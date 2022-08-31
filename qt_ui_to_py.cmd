@@ -3,7 +3,7 @@
 set PYUIC=pyuic5.exe
 set PYRCC=pyrcc5.exe
 
-set ALL_UI=editor-main-window dialog-about
+set ALL_UI=editor_main_window dialog_about
 set ALL_RC=regional_detect
 
 echo Convert Qt UI...
